@@ -3,20 +3,31 @@ import {
 	ApolloClient,
 	InMemoryCache,
 	ApolloProvider,
-	useQuery,
+	useSubscription,
 	useMutation,
 	gql,
 } from '@apollo/client';
+import { WebSocketLink } from '@apollo/client/link/ws';
 import { Container, Row, Col, FormInput, Button } from 'shards-react';
 
+// makes query run through websockets, though i didn't
+// exactly understand what changed
+const link = new WebSocketLink({
+	uri: `ws://localhost:4000`,
+	options: {
+		reconnect: true,
+	},
+});
+
 const client = new ApolloClient({
+	link,
 	// there we go. this should point to our graphql server
 	uri: 'http://localhost:4000/',
 	cache: new InMemoryCache(),
 });
 
 const GET_MESSAGES = gql`
-	query {
+	subscription {
 		messages {
 			id
 			content
@@ -32,7 +43,8 @@ const POST_MESSAGE = gql`
 `;
 
 const Messages = ({ user }) => {
-	const { data } = useQuery(GET_MESSAGES);
+	const { data } = useSubscription(GET_MESSAGES /*{pollInterval: 500}*/);
+	// pollInterval is a nasty solution because of request hell
 	if (!data) {
 		return null;
 	}
@@ -129,6 +141,7 @@ const Chat = () => {
 						}
 						onKeyUp={(evt) => {
 							if (evt.keyCode === 13) {
+								//apparently that's Enter
 								onSend();
 							}
 						}}
